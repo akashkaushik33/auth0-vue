@@ -11,7 +11,7 @@
 </template>
 
 <script>
-import { parseHash, isAuthenticated } from '@/services/auth'
+import { scheduleRenewal } from '@/services/auth'
 export default {
   name: 'App',
   data () {
@@ -21,27 +21,11 @@ export default {
     }
   },
   created () {
-    if (window.location.hash.includes('access_token')) {
-      parseHash((err, user) => {
-        if (err) {
-          console.log(err)
-          this.snackbar = true
-          localStorage.removeItem('userData')
-          this.errorMessage = `${err.error} and ${err.errorDescription}` || 'Invalid data'
-          window.location = window.location.origin
-        } else {
-          console.log('user', user)
-          localStorage.setItem('userData', JSON.stringify(user))
-          this.$router.push({ 'name': 'profile', params: { id: user.nickname || 'user', data: user } })
-        }
-      })
-    }
-    if (isAuthenticated()) {
-      console.log('authenticated')
-      let userData = JSON.parse(localStorage.getItem('userData'))
-      this.$router.push({ name: 'profile', params: { id: userData.nickname } })
-    } else {
-      this.$router.push({ 'name': 'home' })
+    // If a user is already logged in then schedule the token renewal and take him to profilel page
+    if (localStorage.getItem('id_token')) {
+      // method from the auth.js service
+      scheduleRenewal()
+      this.$router.push({ name: 'profile', params: { id: JSON.parse(localStorage.getItem('userData')).nickname } })
     }
   }
 }

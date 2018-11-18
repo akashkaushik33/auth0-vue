@@ -25,6 +25,31 @@
                 </v-list-tile-content>
               </v-list-tile>
 
+              <v-list-tile>
+                <v-list-tile-action>
+                  <v-icon color="indigo">refresh</v-icon>
+                </v-list-tile-action>
+
+                <v-list-tile-content>
+                  <v-list-tile-title>{{refresh_token}}</v-list-tile-title>
+                  <v-list-tile-sub-title>Refresh_token</v-list-tile-sub-title>
+                </v-list-tile-content>
+                <v-list-tile-action ><v-btn @click="revokeRefreshToken" flat color="primary ml-2">Revoke</v-btn></v-list-tile-action>
+              </v-list-tile>
+
+              <v-list-tile>
+                <v-list-tile-action>
+                  <v-icon color="indigo">vpn_key</v-icon>
+                </v-list-tile-action>
+
+                <v-list-tile-content>
+                  <v-list-tile-title>{{access_token}}</v-list-tile-title>
+                  <v-list-tile-sub-title>Access_token</v-list-tile-sub-title>
+                </v-list-tile-content>
+                <v-list-tile-action class="mt-5"><v-btn @click="getNewAccessToken" flat color="primary">New Access Token</v-btn></v-list-tile-action>
+
+              </v-list-tile>
+
               <v-divider inset></v-divider>
 
               <v-list-tile>
@@ -78,25 +103,23 @@
 </template>
 
 <script>
-import { isAuthenticated } from '@/services/auth'
+import { lock } from '@/services/auth'
+import axios from 'axios'
 export default {
   name: 'profile',
   data: () => ({
     snackbar: false,
     errorMessage: '',
-    userData: {}
+    userData: {},
+    access_token: JSON.parse(localStorage.getItem('access_token')) || 'none',
+    refresh_token: localStorage.getItem('refresh_token') || 'none'
   }),
+  computed: {
+  },
   mounted () {
+    lock.hide()
     // getting user data from local storage
     this.userData = JSON.parse(localStorage.getItem('userData')) || {}
-    // checking for user's authentication
-    if (!isAuthenticated()) {
-      this.snackbar = true
-      this.errorMessage = 'Authentication failed'
-      setTimeout(() => {
-        this.logout()
-      }, 2000)
-    }
   },
   methods: {
     // method for loggng user out and removing related items from local storage
@@ -105,7 +128,25 @@ export default {
       localStorage.removeItem('id_token')
       localStorage.removeItem('expires_at')
       localStorage.removeItem('userData')
-      this.$router.push({ 'name': 'home' })
+      clearTimeout(window.tokenRenewalTimeout)
+      lock.logout({ returnTo: 'http://localhost:8080' })
+    },
+
+    // calling api of auth-server to get new access token using refresh token
+    async getNewAccessToken () {
+      let res = await axios.get(`http://localhost:8081/getNewAccessToken?refreshToken=${this.refresh_token}`)
+      this.access_token = res.data.result.access_token
+      lock.getUserInfo(res.data.result.access_token, (err, profile) => {
+        if (err) console.log(err)
+        console.log('PROFILE', profile)
+      })
+    },
+
+    // revoking refresh token
+    async revokeRefreshToken () {
+      await axios.get(`http://localhost:8081/revokeRefreshToken?refreshToken=${this.refresh_token}`)
+      this.refresh_token = ''
+      localStorage.removeItem('refresh_token')
     }
   }
 }

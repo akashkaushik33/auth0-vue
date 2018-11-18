@@ -8,7 +8,9 @@ var options = { method: 'POST',
    { grant_type: 'client_credentials',
      client_id: 'dW6ch2aEHKTACnaqQ12Lx2OSmKgb8McV',
      client_secret: 'neq1ulm_eHZfPowQOwi916KnzI2UTaQUE1ahhCUN28CMICEsSS6BvWJXqYjnQv1d',
-     audience: 'https://vue-passwordless.auth0.com/api/v2/' },
+     audience: 'https://vue-passwordless.auth0.com/api/v2/',
+       
+    },
   json: true };
 
 request(options, function (error, response, body) {
